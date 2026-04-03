@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, PlayCircle, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Loader2,
+  Pause,
+  Play,
+  PlayCircle,
+  ShieldCheck,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const COURSE_PRICE = 999;
@@ -30,10 +39,15 @@ function loadRazorpayScript() {
 
 export default function CourseHero() {
   const router = useRouter();
+  const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [showPoster, setShowPoster] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +66,50 @@ export default function CourseHero() {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
     if (error) setError("");
+  };
+
+  const togglePlay = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      if (!hasStarted) {
+        video.muted = false;
+        setIsMuted(false);
+      }
+      try {
+        await video.play();
+        setIsPlaying(true);
+        setHasStarted(true);
+        setShowPoster(false);
+      } catch {
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    video.pause();
+    setIsPlaying(false);
+  };
+
+  const toggleMute = (event) => {
+    event.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setIsMuted(nextMuted);
+  };
+
+  const handleEnded = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    video.pause();
+    setIsPlaying(false);
+    setShowPoster(false);
   };
 
   const openCheckout = async (event) => {
@@ -252,15 +310,75 @@ export default function CourseHero() {
                   allowFullScreen
                 />
               ) : MENTOR_VIDEO_URL ? (
-                <video
-                  className="h-full w-full object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  src={MENTOR_VIDEO_URL}
-                  poster={process.env.NEXT_PUBLIC_MENTOR_VIDEO_POSTER || ""}
-                />
+                <div
+                  className="group relative h-full w-full cursor-pointer"
+                  onClick={togglePlay}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      togglePlay();
+                    }
+                  }}
+                >
+                  <video
+                    ref={videoRef}
+                    className="h-full w-full pt-6 object-cover content-center"
+                    playsInline
+                    src={MENTOR_VIDEO_URL}
+                    muted={isMuted}
+                    poster={
+                      showPoster
+                        ? process.env.NEXT_PUBLIC_MENTOR_VIDEO_POSTER || ""
+                        : ""
+                    }
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={handleEnded}
+                  />
+
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+
+                  {!isPlaying ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/20 backdrop-blur-sm transition-transform duration-300 group-hover:scale-105">
+                        <Play className="ml-1 h-8 w-8" />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        togglePlay();
+                      }}
+                      className="inline-flex items-center justify-center rounded-full bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur-sm"
+                      aria-label={isPlaying ? "Pause video" : "Play video"}
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={toggleMute}
+                      className="inline-flex items-center justify-center rounded-full bg-black/55 p-2 text-white ring-1 ring-white/20 backdrop-blur-sm"
+                      aria-label={isMuted ? "Unmute video" : "Mute video"}
+                    >
+                      {isMuted ? (
+                        <VolumeX className="h-4 w-4" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#75c13f]/10 text-[#75c13f]">

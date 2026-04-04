@@ -44,8 +44,9 @@ const Index = () => {
 
       {/* Header */}
       <header
-        className={`fixed left-0 w-full z-[9999] bg-[hsl(220_20%_15%_/_0.6)] backdrop-blur-xl border-b border-white/10 shadow-2xl transition-transform duration-300 ease-in-out ${headerVisible ? "translate-y-0" : "-translate-y-full"
-          }`}
+        className={`fixed left-0 w-full z-[9999] bg-[hsl(220_20%_15%_/_0.6)] backdrop-blur-xl border-b border-white/10 shadow-2xl transition-transform duration-300 ease-in-out ${
+          headerVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-3 py-3">
           {/* LOGO - LEFT */}
@@ -174,7 +175,7 @@ const Index = () => {
           >
             {/* REGISTER BUTTON */}
             <button
-              onClick={() => window.location.href='/form'}
+              onClick={() => (window.location.href = "/form")}
               className="
     group relative overflow-hidden
     w-full max-w-xs py-4
@@ -197,9 +198,7 @@ const Index = () => {
               {/* Glass Shine Effect */}
               <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></span>
 
-              <span className="relative z-10">
-                Register Now — Free
-              </span>
+              <span className="relative z-10">Register Now — Free</span>
             </button>
             {/* DETAILS BLOCK */}
             <div className="text-center mt-6 p-6 rounded-3xl  ">

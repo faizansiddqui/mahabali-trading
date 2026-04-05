@@ -93,7 +93,7 @@ export default function CoursePage() {
           >
             <span className="pointer-events-none absolute inset-0 h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-shimmer" />
             <span className="relative flex items-center gap-2">
-              ENROLL <span className="hidden sm:inline">NOW</span>
+              ENROLL <span className="sm:inline">NOW</span>
               <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </span>
           </Link>

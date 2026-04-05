@@ -17,6 +17,8 @@ export default function ConditionalFooter() {
     return null;
   } else if (normalizedPath === "/courses/thank-you") {
     return null;
+  }else if (normalizedPath === "/courses/form") {
+    return null;
   }
 
   return <Footer />;

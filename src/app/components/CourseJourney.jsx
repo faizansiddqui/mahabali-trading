@@ -97,10 +97,10 @@ export default function CourseJourney() {
               </span>
             </div>
             <a
-              href="#course-form"
+              href="/courses/form"
               className="mt-6 items-center justify-center gap-2 flex w-full items-center justify-center py-3 px-4 md:py-4 md:px-8  bg-gradient-to-r from-[#75c13f] to-[#5da432] hover:from-[#75c13f] hover:to-[#5da432] text-gray-900 font-black uppercase tracking-wider rounded-2xl shadow-[0_0_20px_rgba(117,193,63,0.3)] hover:shadow-[0_0_30px_rgba(117,193,63,0.5)] transition-all duration-300 transform hover:scale-[1.02] active:scale-95 cursor-pointer animate-btn-breath"
             >
-              Secure Seat Now - ₹999
+              Secure Now - ₹999
             </a>
           </div>
         </div>

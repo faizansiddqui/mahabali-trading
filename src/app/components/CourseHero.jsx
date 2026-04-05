@@ -290,7 +290,7 @@ export default function CourseHero() {
                       muted={isMuted}
                       poster={
                         showPoster
-                          ? process.env.NEXT_PUBLIC_MENTOR_VIDEO_POSTER || ""
+                          ? process.env.NEXT_PUBLIC_MENTOR_VIDEO_POSTER || "/thumbnail.jpeg"
                           : ""
                       }
                       onPlay={() => setIsPlaying(true)}

@@ -244,6 +244,14 @@ export default function LearningForm() {
       const payload = {
         ...updatedFormData,
         phone: formattedPhone,
+        confirmationMediaType:
+          process.env.NEXT_PUBLIC_MART2META_CONFIRMATION_MEDIA_TYPE || "",
+        confirmationMediaUrl:
+          process.env.NEXT_PUBLIC_MART2META_CONFIRMATION_MEDIA_URL || "",
+        reminderMediaType:
+          process.env.NEXT_PUBLIC_MART2META_REMINDER_MEDIA_TYPE || "",
+        reminderMediaUrl:
+          process.env.NEXT_PUBLIC_MART2META_REMINDER_MEDIA_URL || "",
       };
 
       // Double-check webinar data is included
@@ -303,14 +311,14 @@ export default function LearningForm() {
         throw new Error(
           typeof errorMessage === "string"
             ? errorMessage
-            : "Unknown error occurred"
+            : "Unknown error occurred",
         );
       }
     } catch (error) {
       console.error("Form submission error:", error);
       setErrorMessage(
         error.message ||
-          "An error occurred while submitting the form. Please try again."
+          "An error occurred while submitting the form. Please try again.",
       );
     } finally {
       setIsSubmitting(false);

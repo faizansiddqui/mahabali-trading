@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { cleanPhone10 } from "../../../lib/phone";
-import { sendCoursePurchaseWhatsApp } from "../../../lib/aisensy";
+import { sendCoursePurchaseWhatsApp } from "../../../lib/mart2meta";
 import { sendCourseAccessEmail } from "../../../lib/brevo";
 import { saveCoursePurchaseToSheet2 } from "../../../lib/googleSheet";
 

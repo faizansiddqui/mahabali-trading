@@ -102,9 +102,7 @@ const Index = () => {
 
               {/* Button */}
               <div
-                className="relative rounded-2xl px-2.5 py-1.5 bg-gradient-to-br 
-                      from-red-600 to-red-700 shadow-2xl border border-white/10"
-              >
+                className="relative rounded-2xl px-2.5 py-1.5 bg-gradient-to-br from-red-600 to-red-700 shadow-2xl border border-white/10">
                 <div className="flex items-center justify-center gap-2">
                   <div className="flex items-center justify-center gap-0">
                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -168,11 +166,7 @@ const Index = () => {
 
         {/* CTA Section - Compact */}
         <div className="mt-0 px-3 pb-3">
-          <div
-            className="w-full bg-[hsl(220_20%_15%_/_0.6)] backdrop-blur-xl 
-                  rounded-3xl border border-white/10 shadow-2xl 
-                  p-3 flex flex-col items-center"
-          >
+          <div className="w-full bg-[hsl(220_20%_15%_/_0.6)] backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-3 flex flex-col items-center">
             {/* REGISTER BUTTON */}
             <button
               onClick={() => (window.location.href = "/form")}

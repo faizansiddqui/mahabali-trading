@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { verifyQstashRequest } from "../../lib/qstash";
 import { findRowByLeadId, markCell } from "../../lib/googleSheet";
-import { send1DayReminder, send10MinReminder, sendLiveNow } from "../../lib/aisensy";
+import { send2DayReminder, sendMorningReminder, send10MinReminder, sendLiveNow } from "../../lib/mart2meta";
 
 export async function POST(req) {
   try {
@@ -24,6 +24,8 @@ export async function POST(req) {
       webinarDate,
       webinarDay,
       webinarTime,
+      reminderMediaUrl,
+      reminderMediaType,
     } = data;
 
     if (!type) {
@@ -43,16 +45,47 @@ export async function POST(req) {
 
     console.log("QSTASH RECEIVED", { type, rowNumber: targetRow, leadId, phone10, webinarDate, webinarDay, webinarTime });
 
-    if (type === "1day") {
-      await send1DayReminder({ name, phone10, webinarDate, webinarDay, webinarTime });
+    if (type === "2day") {
+      await send2DayReminder({
+        name,
+        phone10,
+        mediaUrl: reminderMediaUrl,
+        templateMediaType: reminderMediaType || undefined,
+      });
       await markCell(targetRow, "K", "yes");
-      console.log("QSTASH SENT 1DAY", { rowNumber: targetRow });
+      console.log("QSTASH SENT 2DAY", { rowNumber: targetRow });
+    } else if (type === "morning") {
+      await sendMorningReminder({
+        name,
+        phone10,
+        webinarDate,
+        webinarDay,
+        webinarTime,
+        mediaUrl: reminderMediaUrl,
+        templateMediaType: reminderMediaType || undefined,
+      });
+      await markCell(targetRow, "O", "yes");
+      console.log("QSTASH SENT MORNING", { rowNumber: targetRow });
     } else if (type === "10min") {
-      await send10MinReminder({ name, phone10, webinarDate, webinarDay, webinarTime });
+      await send10MinReminder({
+        name,
+        phone10,
+        webinarTime,
+        mediaUrl: reminderMediaUrl,
+        templateMediaType: reminderMediaType || undefined,
+      });
       await markCell(targetRow, "L", "yes");
       console.log("QSTASH SENT 10MIN", { rowNumber: targetRow });
     } else if (type === "live") {
-      await sendLiveNow({ name, phone10, webinarDate, webinarDay, webinarTime });
+      await sendLiveNow({
+        name,
+        phone10,
+        webinarDate,
+        webinarDay,
+        webinarTime,
+        mediaUrl: reminderMediaUrl,
+        templateMediaType: reminderMediaType || undefined,
+      });
       await markCell(targetRow, "M", "yes");
       console.log("QSTASH SENT LIVE", { rowNumber: targetRow });
     } else {

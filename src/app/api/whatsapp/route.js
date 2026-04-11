@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cleanPhone10 } from "../../lib/phone";
 import { validateForm } from "../../lib/validate";
 import { saveToSheet, markCell } from "../../lib/googleSheet";
-import { sendConfirmation } from "../../lib/aisensy";
+import { sendConfirmation } from "../../lib/mart2meta";
 import { getQstashTargetUrl, publishScheduled, toEpochSeconds } from "../../lib/qstash";
 
 // Column J = sentConfirmation
@@ -72,6 +72,55 @@ function buildWebinarISO({ webinarDate, webinarTime }) {
   return dt.toISOString();
 }
 
+function buildWebinarMorningISO(webinarDate) {
+  const dateParts = parseWebinarDate(webinarDate);
+
+  if (dateParts) {
+    const utcMs =
+      Date.UTC(dateParts.year, dateParts.monthIdx, dateParts.day, 8, 0) - IST_OFFSET_MIN * 60 * 1000;
+    return new Date(utcMs).toISOString();
+  }
+
+  const dt = new Date(`${webinarDate} 08:00 GMT+0530`);
+  if (isNaN(dt.getTime())) return null;
+  return dt.toISOString();
+}
+
+function buildSecondDayReminderISOFromNow() {
+  const IST_OFFSET_MS = IST_OFFSET_MIN * 60 * 1000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const nowUtcMs = Date.now();
+  const nowIst = new Date(nowUtcMs + IST_OFFSET_MS);
+  const istWeekday = nowIst.getUTCDay(); // 0=Sun ... 6=Sat
+
+  // Saturday form-fill: send this reminder 2 hours after confirmation.
+  if (istWeekday === 6) {
+    return new Date(nowUtcMs + 2 * 60 * 60 * 1000).toISOString();
+  }
+
+  let daysToAdd = 3;
+  if (istWeekday === 4) daysToAdd = 2; // Thu -> Sat
+  if (istWeekday === 5) daysToAdd = 1; // Fri -> Sat
+
+  const targetIstDate = new Date(Date.UTC(
+    nowIst.getUTCFullYear(),
+    nowIst.getUTCMonth(),
+    nowIst.getUTCDate()
+  ) + daysToAdd * DAY_MS);
+
+  const utcMs =
+    Date.UTC(
+      targetIstDate.getUTCFullYear(),
+      targetIstDate.getUTCMonth(),
+      targetIstDate.getUTCDate(),
+      8,
+      0
+    ) - IST_OFFSET_MS;
+
+  return new Date(utcMs).toISOString();
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -84,6 +133,10 @@ export async function POST(req) {
     const webinarDay = normalized.webinarDay || "";
     const webinarDate = normalized.webinarDate || "";
     const webinarTime = normalized.webinarTime || "";
+    const confirmationMediaUrl = String(body?.confirmationMediaUrl || body?.mediaUrl || "").trim();
+    const confirmationMediaType = String(body?.confirmationMediaType || body?.mediaType || "").trim();
+    const reminderMediaUrl = String(body?.reminderMediaUrl || "").trim();
+    const reminderMediaType = String(body?.reminderMediaType || "").trim();
 
     if (!webinarDate || !webinarTime) {
       return NextResponse.json(
@@ -123,6 +176,8 @@ export async function POST(req) {
       email: normalized.email,
       phone10,
       webinarMeta: { webinarDay, webinarDate, webinarTime, webinarISO },
+      mediaUrl: confirmationMediaUrl || undefined,
+      templateMediaType: confirmationMediaType || undefined,
     });
 
     // schedule reminders via QStash
@@ -140,10 +195,13 @@ export async function POST(req) {
         );
       }
 
+      const secondDayReminderISO = buildSecondDayReminderISOFromNow();
+      const secondDayEpoch = toEpochSeconds(secondDayReminderISO);
+      const morningWebinarISO = buildWebinarMorningISO(webinarDate);
+      if (!morningWebinarISO) throw new Error("Invalid morning webinar ISO");
+      const morningEpoch = toEpochSeconds(morningWebinarISO);
       const webinarTs = new Date(webinarISO).getTime();
       if (Number.isNaN(webinarTs)) throw new Error("Invalid webinarISO");
-
-      const oneDayEpoch = toEpochSeconds(new Date(webinarTs - 24 * 60 * 60 * 1000).toISOString());
       const tenMinEpoch = toEpochSeconds(new Date(webinarTs - 10 * 60 * 1000).toISOString());
       const liveEpoch = toEpochSeconds(new Date(webinarTs).toISOString());
 
@@ -157,12 +215,19 @@ export async function POST(req) {
         webinarDate,
         webinarTime,
         webinarISO,
+        reminderMediaUrl: reminderMediaUrl || undefined,
+        reminderMediaType: reminderMediaType || undefined,
       };
 
       await publishScheduled({
         url: receiverUrl,
-        body: { type: "1day", ...payload },
-        notBeforeEpochSeconds: oneDayEpoch,
+        body: { type: "2day", ...payload },
+        notBeforeEpochSeconds: secondDayEpoch,
+      });
+      await publishScheduled({
+        url: receiverUrl,
+        body: { type: "morning", ...payload },
+        notBeforeEpochSeconds: morningEpoch,
       });
       await publishScheduled({
         url: receiverUrl,

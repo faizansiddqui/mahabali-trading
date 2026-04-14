@@ -27,8 +27,10 @@ function required(name, value) {
 }
 
 function resolvePublicUrlMaybe(relativeOrAbsoluteUrl) {
-    const raw = typeof relativeOrAbsoluteUrl === "string" ? relativeOrAbsoluteUrl.trim() : "";
+    let raw = typeof relativeOrAbsoluteUrl === "string" ? relativeOrAbsoluteUrl.trim() : "";
     if (!raw) return "";
+    // strip wrapping quotes if user saved value like "https://example.com/video.mp4"
+    raw = raw.replace(/^['"]|['"]$/g, "");
 
     // Already absolute
     if (/^https?:\/\//i.test(raw)) return raw;
@@ -38,20 +40,29 @@ function resolvePublicUrlMaybe(relativeOrAbsoluteUrl) {
 
     // "/file.mp4" -> needs a public site base
     if (raw.startsWith("/")) {
-        const base =
-            (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "")
-                .trim()
-                .replace(/\/+$/, "");
+        let base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "").trim();
+        base = base.replace(/^['"]|['"]$/g, "");
+        base = base.replace(/\/+$/, "");
         if (!base || !/^https?:\/\//i.test(base)) {
             throw new Error(
                 `Media URL "${raw}" is relative but NEXT_PUBLIC_SITE_URL/SITE_URL is missing or invalid. Set NEXT_PUBLIC_SITE_URL to a public https URL (e.g. https://mahabalipriceaction.com).`
             );
         }
-        return `${base}${raw}`;
+        raw = `${base}${raw}`;
     }
 
     // Bare host/path without protocol -> assume https
-    return `https://${raw}`;
+    if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+
+    // Validate URI shape early (Meta rejects many invalid/encoded forms)
+    try {
+        const parsed = new URL(raw);
+        if (!/^https?:$/.test(parsed.protocol)) throw new Error("Invalid protocol");
+    } catch {
+        throw new Error(`Invalid public media URL: ${raw}`);
+    }
+
+    return raw;
 }
 
 function asInternationalPhone(input) {
@@ -125,8 +136,9 @@ async function callMart2Meta({ path, payload, label }) {
     }
 
     if (!response.ok) {
+        const mediaHint = payload?.url ? ` mediaUrl=${maskValue(payload.url)}` : "";
         throw new Error(
-            `Mart2Meta failed (${response.status}) [${label || "unknown"} template=${payload?.template_name || ""} lang=${payload?.template_language || ""} uid=${maskUid(MART2META_UID)} path=${path}]: ${raw}`
+            `Mart2Meta failed (${response.status}) [${label || "unknown"} template=${payload?.template_name || ""} lang=${payload?.template_language || ""} uid=${maskUid(MART2META_UID)} path=${path}]${mediaHint}: ${raw}`
         );
     }
 
@@ -164,8 +176,14 @@ async function sendTemplate({
         template_media_type: templateMediaType,
     };
 
+    const needsMedia = ["video", "image", "document"].includes(String(templateMediaType || "").toLowerCase());
+
     if (typeof mediaUrl === "string" && mediaUrl.trim()) {
         payload.url = resolvePublicUrlMaybe(mediaUrl);
+    } else if (needsMedia) {
+        throw new Error(
+            `Missing mediaUrl for media template. Set MART2META_TEMPLATE_*_MEDIA_URL to a public https URL (or use "/file" with NEXT_PUBLIC_SITE_URL).`
+        );
     }
 
     if (Array.isArray(parameters)) {

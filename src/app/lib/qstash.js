@@ -22,6 +22,9 @@ function normalizeBaseUrl(raw) {
   let value = String(raw).trim();
   // strip wrapping quotes if user saved value like "https://example.com"
   value = value.replace(/^['"]|['"]$/g, "");
+  // If someone accidentally pasted multiple URLs (space/newline separated),
+  // keep the first token.
+  value = value.split(/\s+/).filter(Boolean)[0] || "";
   if (!/^https?:\/\//i.test(value)) {
     const isLocal = value.startsWith("localhost") || value.startsWith("127.0.0.1");
     value = `${isLocal ? "http" : "https"}://${value}`;

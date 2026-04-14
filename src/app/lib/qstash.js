@@ -1,7 +1,7 @@
 // src/app/lib/qstash.js
 import { Receiver } from "@upstash/qstash";
 
-const QSTASH_BASE = process.env.QSTASH_BASE_URL || "https://qstash-us-east-1.upstash.io";
+const QSTASH_BASE = normalizeBaseUrl(process.env.QSTASH_BASE_URL || "https://qstash-us-east-1.upstash.io");
 
 function requireEnv(name) {
   if (!process.env[name]) throw new Error(`${name} is required`);
@@ -40,6 +40,13 @@ function normalizeBaseUrl(raw) {
 
 export async function publishScheduled({ url, body, notBeforeEpochSeconds }) {
   requireEnv("QSTASH_TOKEN");
+
+  // QStash requires an absolute http(s) destination URL.
+  if (!/^https?:\/\//i.test(String(url || ""))) {
+    throw new Error(
+      `Invalid QStash destination URL (missing scheme): "${url}". Set QSTASH_TARGET_URL to something like "https://mahabalipriceaction.com".`
+    );
+  }
 
   // QStash expects the destination URL to be URL-encoded in the path segment.
   const publishUrl = `${QSTASH_BASE}/v2/publish/${encodeURIComponent(url)}`;

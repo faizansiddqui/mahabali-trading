@@ -61,7 +61,7 @@ const Index = () => {
           {/* TEXT - RIGHT */}
           <div className="leading-tight text-right">
             <h1 className="text-white text-base sm:text-2xl font-extrabold tracking-wide uppercase drop-shadow-lg">
-              India's
+              India&apos;s
               <span className="ml-1 text-xl sm:text-2xl font-black">1</span>
               <sup className="text-xs sm:text-sm font-bold ml-0.5">st</sup>
             </h1>

@@ -119,7 +119,7 @@ export default function EnrollNowSection() {
 
             {/* Key Features Integrated Below Course */}
             <div className="pt-8 md:pt-12 border-t border-[#C5FF00]/10">
-              <h4 className="text-2xl font-bold text-center mb-8 text-[#C5FF00]">What You'll Get in This Course</h4>
+              <h4 className="text-2xl font-bold text-center mb-8 text-[#C5FF00]">What You&apos;ll Get in This Course</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {keyFeatures.map((feature, index) => (
                   <div 
@@ -145,7 +145,7 @@ export default function EnrollNowSection() {
         {/* Final CTA */}
         <div className="text-center bg-[#1a1a1a]/50 backdrop-blur-sm border border-[#C5FF00]/20 rounded-3xl p-8 md:p-12">
           <h3 className="text-2xl font-bold mb-4">Ready to Transform Your Trading Skills?</h3>
-          <p className="text-gray-400 mb-6">Don't miss this exclusive offer - enroll today and start your journey to profitable trading!</p>
+          <p className="text-gray-400 mb-6">Don&apos;t miss this exclusive offer - enroll today and start your journey to profitable trading!</p>
           <button className="bg-gradient-to-r from-[#C5FF00] via-[#d4ff33] to-[#C5FF00] text-black px-10 py-4 rounded-full font-bold text-lg hover:scale-105 hover:shadow-[0_0_40px_rgba(197,255,0,0.4)] transition-all tracking-wide flex items-center gap-3 mx-auto">
             Start Your Enrollment
             <ArrowRight className="w-5 h-5" />

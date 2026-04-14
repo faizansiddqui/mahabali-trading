@@ -133,7 +133,9 @@ export default function TestimonialsSection() {
                         </div>
                       )}
                     </div>
-                    <p className="text-gray-300 italic text-base md:text-lg leading-relaxed mb-3 md:mb-4">"{testimonial.quote}"</p>
+                    <p className="text-gray-300 italic text-base md:text-lg leading-relaxed mb-3 md:mb-4">
+                      &ldquo;{testimonial.quote}&rdquo;
+                    </p>
                   </div>
 
                   {/* User Info */}

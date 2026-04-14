@@ -55,7 +55,7 @@ const HeroDesktop = () => {
             </div>
             <div className="text-right">
               <div className="text-white text-sm sm:text-xl font-black italic">
-                INDIA'S <span className="text-[#75c13f]">№1</span>
+                INDIA&apos;S <span className="text-[#75c13f]">№1</span>
               </div>
               <p className="text-white/50 text-[9px] sm:text-[11px] font-bold tracking-widest uppercase">
                 Price Behavior

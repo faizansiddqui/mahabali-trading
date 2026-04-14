@@ -14,7 +14,7 @@ export default function SolutionSection() {
 
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900">
               Learn to Read the Market,
-              <span className="block text-amber-500 mt-2">Don't Guess</span>
+              <span className="block text-amber-500 mt-2">Don&apos;t Guess</span>
             </h2>
 
             <div className="bg-gradient-to-r from-amber-400 to-orange-400 h-1 w-24 mx-auto rounded-full"></div>

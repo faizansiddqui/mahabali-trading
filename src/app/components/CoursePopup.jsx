@@ -7,7 +7,9 @@ function CoursePopup() {
 
     useEffect(() => {
         if (!localStorage.getItem('coursePopupSeen')) {
-            setIsOpen(true);
+            (window).coursePopupTimer = setTimeout(() => {
+                setIsOpen(true);
+            }, 0);
         }
 
         return () => {

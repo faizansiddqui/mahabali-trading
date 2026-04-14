@@ -35,7 +35,7 @@ const TradingProgram = () => {
         {/* Header */}
         <div className="mx-auto mb-16 max-w-3xl text-center md:mb-20 lg:mb-24"> {/* Increased margins */}
           <span className="mb-6 inline-block rounded-full bg-[#75c13f]/10 px-4 py-2 text-sm font-medium uppercase tracking-wide text-[#75c13f] sm:px-5 sm:py-2.5"> {/* Increased text size and padding */}
-            What You'll Learn
+            What You&apos;ll Learn
           </span>
           <h2 className="mb-6 text-4xl text-gray-900 font-bold tracking-tight sm:text-5xl md:text-6xl"> {/* Increased text size */}
             Market Education{" "}

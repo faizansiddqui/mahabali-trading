@@ -559,7 +559,7 @@ export default function LearningForm() {
 
             {/* Premium Button */}
             <button
-              onClick={() => (window.location.href = "/courses")}
+              onClick={() => (window.location.href = "/form")}
               className="relative group overflow-hidden bg-white cursor-pointer hover:bg-[#75c13f] text-black hover:text-gray-900 font-black text-sm sm:text-lg px-6 sm:px-12 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
             >
               {/* Shimmer Animation */}

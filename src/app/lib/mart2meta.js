@@ -9,11 +9,49 @@ const MART2META_TEMPLATE_LANGUAGE = process.env.MART2META_TEMPLATE_LANGUAGE || "
 const MART2META_DEBUG = process.env.MART2META_DEBUG === "true";
 const WEBINAR_LINK = process.env.WEBINAR_LINK || "";
 
+function maskUid(uid) {
+    const str = String(uid || "");
+    if (!str) return "";
+    if (str.length <= 8) return `${str.slice(0, 2)}***`;
+    return `${str.slice(0, 4)}****${str.slice(-4)}`;
+}
+
 function required(name, value) {
-    if (!value) {
+    const normalized =
+        typeof value === "string" ? value.trim() : value;
+
+    if (!normalized) {
         throw new Error(`Missing required env: ${name}`);
     }
-    return value;
+    return normalized;
+}
+
+function resolvePublicUrlMaybe(relativeOrAbsoluteUrl) {
+    const raw = typeof relativeOrAbsoluteUrl === "string" ? relativeOrAbsoluteUrl.trim() : "";
+    if (!raw) return "";
+
+    // Already absolute
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    // Protocol-relative -> normalize to https
+    if (/^\/\//.test(raw)) return `https:${raw}`;
+
+    // "/file.mp4" -> needs a public site base
+    if (raw.startsWith("/")) {
+        const base =
+            (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "")
+                .trim()
+                .replace(/\/+$/, "");
+        if (!base || !/^https?:\/\//i.test(base)) {
+            throw new Error(
+                `Media URL "${raw}" is relative but NEXT_PUBLIC_SITE_URL/SITE_URL is missing or invalid. Set NEXT_PUBLIC_SITE_URL to a public https URL (e.g. https://mahabalipriceaction.com).`
+            );
+        }
+        return `${base}${raw}`;
+    }
+
+    // Bare host/path without protocol -> assume https
+    return `https://${raw}`;
 }
 
 function asInternationalPhone(input) {
@@ -87,7 +125,9 @@ async function callMart2Meta({ path, payload, label }) {
     }
 
     if (!response.ok) {
-        throw new Error(`Mart2Meta failed (${response.status}): ${raw}`);
+        throw new Error(
+            `Mart2Meta failed (${response.status}) [${label || "unknown"} template=${payload?.template_name || ""} lang=${payload?.template_language || ""} uid=${maskUid(MART2META_UID)} path=${path}]: ${raw}`
+        );
     }
 
     const lowered = String(raw || "").toLowerCase();
@@ -99,7 +139,9 @@ async function callMart2Meta({ path, payload, label }) {
         lowered.includes("failed");
 
     if (explicitFailure) {
-        throw new Error(`Mart2Meta failed: ${raw}`);
+        throw new Error(
+            `Mart2Meta failed [${label || "unknown"} template=${payload?.template_name || ""} lang=${payload?.template_language || ""} uid=${maskUid(MART2META_UID)} path=${path}]: ${raw}`
+        );
     }
 
     return { status: "success", data: data ?? raw };
@@ -123,7 +165,7 @@ async function sendTemplate({
     };
 
     if (typeof mediaUrl === "string" && mediaUrl.trim()) {
-        payload.url = mediaUrl.trim();
+        payload.url = resolvePublicUrlMaybe(mediaUrl);
     }
 
     if (Array.isArray(parameters)) {

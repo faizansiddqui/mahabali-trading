@@ -181,13 +181,29 @@ export async function POST(req) {
     });
 
     // schedule reminders via QStash
-    if (rowNumber) {
+    const reminderTestMode = String(process.env.REMINDER_TEST_MODE || "").toLowerCase() === "true";
+
+    if (rowNumber && !reminderTestMode) {
       const baseUrl = getQstashTargetUrl(req.url, req.headers);
       const receiverUrl = `${baseUrl}/api/qstash`;
       try {
         const parsed = new URL(receiverUrl);
         if (!/^https?:$/.test(parsed.protocol)) {
           throw new Error("Invalid protocol");
+        }
+        // Upstash QStash rejects loopback/private localhost destinations.
+        // If you're testing locally, set REMINDER_TEST_MODE=true (skip scheduling)
+        // or set QSTASH_TARGET_URL to a public tunnel/domain.
+        const host = (parsed.hostname || "").toLowerCase();
+        if (
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host === "::1" ||
+          host === "[::1]"
+        ) {
+          throw new Error(
+            `QStash destination resolves to loopback (${parsed.hostname}). Set QSTASH_TARGET_URL to a public URL or enable REMINDER_TEST_MODE=true.`
+          );
         }
       } catch {
         throw new Error(
@@ -253,6 +269,9 @@ export async function POST(req) {
     let safeMessage = "Something went wrong. Please try again.";
     if (raw.toLowerCase().includes("insufficient whatsapp conversation credits")) {
       safeMessage = "We are facing some issue. Please try again later.";
+    } else if (raw.toLowerCase().includes("template not found")) {
+      safeMessage =
+        "WhatsApp template is not configured correctly. Please try again later.";
     } else if (raw.toLowerCase().includes("invalid phone")) {
       safeMessage = "Please enter a valid 10-digit phone number.";
     } else if (raw.toLowerCase().includes("webinar")) {

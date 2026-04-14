@@ -180,13 +180,18 @@ export async function POST(req) {
       templateMediaType: confirmationMediaType || undefined,
     });
 
+    // Message sent successfully -> mark immediately (don't block on QStash scheduling)
+    if (rowNumber) {
+      await markCell(rowNumber, COL_LETTER_SENT_CONFIRM, "yes");
+    }
+
     // schedule reminders via QStash
     const reminderTestMode = String(process.env.REMINDER_TEST_MODE || "").toLowerCase() === "true";
 
     if (rowNumber && !reminderTestMode) {
-      const baseUrl = getQstashTargetUrl(req.url, req.headers);
-      const receiverUrl = `${baseUrl}/api/qstash`;
       try {
+        const baseUrl = getQstashTargetUrl(req.url, req.headers);
+        const receiverUrl = `${baseUrl}/api/qstash`;
         const parsed = new URL(receiverUrl);
         if (!/^https?:$/.test(parsed.protocol)) {
           throw new Error("Invalid protocol");
@@ -205,61 +210,55 @@ export async function POST(req) {
             `QStash destination resolves to loopback (${parsed.hostname}). Set QSTASH_TARGET_URL to a public URL or enable REMINDER_TEST_MODE=true.`
           );
         }
-      } catch {
-        throw new Error(
-          `Invalid QStash destination URL: ${receiverUrl}. Set QSTASH_TARGET_URL with http:// or https://`
-        );
+
+        const secondDayReminderISO = buildSecondDayReminderISOFromNow();
+        const secondDayEpoch = toEpochSeconds(secondDayReminderISO);
+        const morningWebinarISO = buildWebinarMorningISO(webinarDate);
+        if (!morningWebinarISO) throw new Error("Invalid morning webinar ISO");
+        const morningEpoch = toEpochSeconds(morningWebinarISO);
+        const webinarTs = new Date(webinarISO).getTime();
+        if (Number.isNaN(webinarTs)) throw new Error("Invalid webinarISO");
+        const tenMinEpoch = toEpochSeconds(new Date(webinarTs - 10 * 60 * 1000).toISOString());
+        const liveEpoch = toEpochSeconds(new Date(webinarTs).toISOString());
+
+        const payload = {
+          rowNumber,
+          leadId,
+          name: normalized.name,
+          email: normalized.email,
+          phone10,
+          webinarDay,
+          webinarDate,
+          webinarTime,
+          webinarISO,
+          reminderMediaUrl: reminderMediaUrl || undefined,
+          reminderMediaType: reminderMediaType || undefined,
+        };
+
+        await publishScheduled({
+          url: receiverUrl,
+          body: { type: "2day", ...payload },
+          notBeforeEpochSeconds: secondDayEpoch,
+        });
+        await publishScheduled({
+          url: receiverUrl,
+          body: { type: "morning", ...payload },
+          notBeforeEpochSeconds: morningEpoch,
+        });
+        await publishScheduled({
+          url: receiverUrl,
+          body: { type: "10min", ...payload },
+          notBeforeEpochSeconds: tenMinEpoch,
+        });
+        await publishScheduled({
+          url: receiverUrl,
+          body: { type: "live", ...payload },
+          notBeforeEpochSeconds: liveEpoch,
+        });
+      } catch (err) {
+        // Don't fail the whole form submission if reminders scheduling fails.
+        console.error("QStash scheduling error:", err);
       }
-
-      const secondDayReminderISO = buildSecondDayReminderISOFromNow();
-      const secondDayEpoch = toEpochSeconds(secondDayReminderISO);
-      const morningWebinarISO = buildWebinarMorningISO(webinarDate);
-      if (!morningWebinarISO) throw new Error("Invalid morning webinar ISO");
-      const morningEpoch = toEpochSeconds(morningWebinarISO);
-      const webinarTs = new Date(webinarISO).getTime();
-      if (Number.isNaN(webinarTs)) throw new Error("Invalid webinarISO");
-      const tenMinEpoch = toEpochSeconds(new Date(webinarTs - 10 * 60 * 1000).toISOString());
-      const liveEpoch = toEpochSeconds(new Date(webinarTs).toISOString());
-
-      const payload = {
-        rowNumber,
-        leadId,
-        name: normalized.name,
-        email: normalized.email,
-        phone10,
-        webinarDay,
-        webinarDate,
-        webinarTime,
-        webinarISO,
-        reminderMediaUrl: reminderMediaUrl || undefined,
-        reminderMediaType: reminderMediaType || undefined,
-      };
-
-      await publishScheduled({
-        url: receiverUrl,
-        body: { type: "2day", ...payload },
-        notBeforeEpochSeconds: secondDayEpoch,
-      });
-      await publishScheduled({
-        url: receiverUrl,
-        body: { type: "morning", ...payload },
-        notBeforeEpochSeconds: morningEpoch,
-      });
-      await publishScheduled({
-        url: receiverUrl,
-        body: { type: "10min", ...payload },
-        notBeforeEpochSeconds: tenMinEpoch,
-      });
-      await publishScheduled({
-        url: receiverUrl,
-        body: { type: "live", ...payload },
-        notBeforeEpochSeconds: liveEpoch,
-      });
-    }
-
-    // if success -> mark sentConfirmation = yes
-    if (rowNumber) {
-      await markCell(rowNumber, COL_LETTER_SENT_CONFIRM, "yes");
     }
 
     return NextResponse.json({ success: true, message: "Form submitted successfully!" });

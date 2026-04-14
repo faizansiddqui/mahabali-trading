@@ -26,7 +26,13 @@ function normalizeBaseUrl(raw) {
     const isLocal = value.startsWith("localhost") || value.startsWith("127.0.0.1");
     value = `${isLocal ? "http" : "https"}://${value}`;
   }
-  return value.replace(/\/$/, "");
+  value = value.replace(/\/$/, "");
+  // Ensure we keep only the origin (no path/query) so callers can append "/api/qstash" safely.
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
 }
 
 export async function publishScheduled({ url, body, notBeforeEpochSeconds }) {

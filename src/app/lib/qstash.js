@@ -1,7 +1,7 @@
 // src/app/lib/qstash.js
 import { Receiver } from "@upstash/qstash";
 
-const QSTASH_BASE = normalizeBaseUrl(process.env.QSTASH_BASE_URL || "https://qstash-us-east-1.upstash.io");
+const QSTASH_BASE = normalizeQstashBase(process.env.QSTASH_BASE_URL || "");
 
 function requireEnv(name) {
   if (!process.env[name]) throw new Error(`${name} is required`);
@@ -15,6 +15,15 @@ export function getQstashTargetUrl(reqUrl, headers) {
   if (host) return `${proto || "https"}://${host}`;
   if (reqUrl) return new URL(reqUrl).origin;
   return "http://localhost:3000";
+}
+
+function normalizeQstashBase(raw) {
+  // QStash base must be like "https://qstash-<region>.upstash.io"
+  // Some setups mistakenly put ".../v2/publish" here; strip that.
+  const base = normalizeBaseUrl(raw);
+  return String(base || "")
+    .replace(/\/v2\/publish\/?$/i, "")
+    .replace(/\/+$/g, "");
 }
 
 function normalizeBaseUrl(raw) {
@@ -48,8 +57,9 @@ export async function publishScheduled({ url, body, notBeforeEpochSeconds }) {
     );
   }
 
-  // QStash expects the destination URL to be URL-encoded in the path segment.
-  const publishUrl = `${QSTASH_BASE}/v2/publish/${encodeURIComponent(url)}`;
+  // Destination URL is carried in the path. Do NOT encodeURIComponent() here;
+  // QStash expects the raw URL after /v2/publish/.
+  const publishUrl = `${QSTASH_BASE}/v2/publish/${url}`;
 
   const res = await fetch(publishUrl, {
     method: "POST",

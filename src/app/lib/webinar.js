@@ -3,7 +3,6 @@ export function getNextWebinarDate() {
   const now = new Date();
 
   const SUNDAY = 0;
-  const THURSDAY = 4;
 
   const webinarHour = 20;   // 08:00 PM IST
   const webinarMinute = 0;
@@ -17,10 +16,7 @@ export function getNextWebinarDate() {
     return result;
   }
 
-  const nextSunday = getNextDay(SUNDAY);
-  const nextThursday = getNextDay(THURSDAY);
-
-  return nextSunday < nextThursday ? nextSunday : nextThursday;
+  return getNextDay(SUNDAY);
 }
 
 export function formatWebinarParts(webinarDT) {

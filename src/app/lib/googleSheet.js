@@ -43,10 +43,10 @@ export async function saveToSheet({
     webinarISO || "",                   // I
     "no",                               // J sentConfirmation
     "no",                               // K sent2Day
-    "no",                               // L sent10Min
-    "no",                               // M sentLive
-    leadId || "",                       // N leadId
-    "no",                               // O sentMorning
+    "no",                               // L sentMorning
+    "no",                               // M sent10Min
+    "no",                               // N sentLive
+    leadId || "",                       // O leadId
   ]];
 
   const res = await sheets.spreadsheets.values.append({
@@ -64,13 +64,13 @@ export async function saveToSheet({
   return { success: true, rowNumber };
 }
 
-// Find row number by leadId stored in column N
+// Find row number by leadId stored in column O
 export async function findRowByLeadId(leadId) {
   if (!leadId) return null;
   const sheets = await getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: "Sheet1!N:N",
+    range: "Sheet1!O:O",
   });
 
   const rows = res.data.values || [];

@@ -64,7 +64,7 @@ export async function POST(req) {
         mediaUrl: reminderMediaUrl,
         templateMediaType: reminderMediaType || undefined,
       });
-      await markCell(targetRow, "O", "yes");
+      await markCell(targetRow, "L", "yes");
       console.log("QSTASH SENT MORNING", { rowNumber: targetRow });
     } else if (type === "10min") {
       await send10MinReminder({
@@ -74,7 +74,7 @@ export async function POST(req) {
         mediaUrl: reminderMediaUrl,
         templateMediaType: reminderMediaType || undefined,
       });
-      await markCell(targetRow, "L", "yes");
+      await markCell(targetRow, "M", "yes");
       console.log("QSTASH SENT 10MIN", { rowNumber: targetRow });
     } else if (type === "live") {
       await sendLiveNow({
@@ -86,7 +86,7 @@ export async function POST(req) {
         mediaUrl: reminderMediaUrl,
         templateMediaType: reminderMediaType || undefined,
       });
-      await markCell(targetRow, "M", "yes");
+      await markCell(targetRow, "N", "yes");
       console.log("QSTASH SENT LIVE", { rowNumber: targetRow });
     } else {
       return NextResponse.json({ ok: false, message: "Unknown job type" }, { status: 400 });

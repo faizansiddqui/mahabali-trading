@@ -128,6 +128,16 @@ async function callMart2Meta({ path, payload, label }) {
 
     const raw = await response.text();
 
+    if (MART2META_DEBUG) {
+        const snippet = String(raw || "").slice(0, 500);
+        console.log("Mart2Meta DEBUG response", {
+            label,
+            httpStatus: response.status,
+            ok: response.ok,
+            bodySnippet: snippet,
+        });
+    }
+
     let data = null;
     try {
         data = JSON.parse(raw);
@@ -147,6 +157,11 @@ async function callMart2Meta({ path, payload, label }) {
         data?.status === false ||
         data?.success === false ||
         data?.ok === false ||
+        // Mart2Meta sometimes returns PHP/Laravel debug text with reaction_code/message
+        // while still responding 200 OK.
+        lowered.includes("invalid template id") ||
+        lowered.includes("sync template") ||
+        lowered.includes("reaction_code") ||
         lowered.includes("error") ||
         lowered.includes("failed");
 
@@ -236,7 +251,9 @@ export async function sendCoursePurchaseWhatsApp({
         phone10,
         templateMediaType,
         mediaUrl: mediaUrl || process.env.MART2META_TEMPLATE_COURSE_PURCHASE_MEDIA_URL,
-        parameters: [name, email, courseName, whatsappCommunityUrl],
+        // Template `course_purchase_confirmation_v01` is configured for 2 params:
+        // 1) name 2) course community link
+        parameters: [name, whatsappCommunityUrl],
     });
 }
 

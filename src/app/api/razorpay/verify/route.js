@@ -21,7 +21,9 @@ export async function POST(req) {
         const sanitizedEmail = String(email || "").trim().toLowerCase();
         const courseAccessLink = process.env.COURSE_ACCESS_LINK || "";
         const whatsappCommunityUrl =
-            process.env.WHATSAPP_COMMUNITY_URL || "https://chat.whatsapp.com/HjW5OInq33h3cOzDZv7Dln";
+            process.env.COURSE_WHATSAPP_COMMUNITY_URL ||
+            process.env.WHATSAPP_COMMUNITY_URL ||
+            "https://chat.whatsapp.com/HjW5OInq33h3cOzDZv7Dln";
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             return NextResponse.json({ success: false, message: "Missing payment details." }, { status: 400 });
@@ -46,9 +48,6 @@ export async function POST(req) {
                 name: sanitizedName,
                 email: sanitizedEmail,
                 phone10,
-                paymentId: razorpay_payment_id,
-                orderId: razorpay_order_id,
-                amount: 999,
                 courseName,
                 whatsappCommunityUrl,
             }),
@@ -64,12 +63,14 @@ export async function POST(req) {
                     amount: "₹999",
                     course_name: courseName,
                     course_access_link: courseAccessLink,
+                    course_community_url: whatsappCommunityUrl,
                 },
             }),
         ]);
 
         const whatsappStatus = notifications[0]?.status === "fulfilled" ? "sent" : "failed";
         const emailStatus = notifications[1]?.status === "fulfilled" ? "sent" : "failed";
+        const whatsappError = notifications[0]?.status === "rejected" ? notifications[0].reason?.message : null;
         const emailError = notifications[1]?.status === "rejected" ? notifications[1].reason?.message : null;
 
         return NextResponse.json({
@@ -79,6 +80,7 @@ export async function POST(req) {
                 whatsapp: whatsappStatus,
                 email: emailStatus,
             },
+            whatsappError,
             emailError,
         });
     } catch (error) {

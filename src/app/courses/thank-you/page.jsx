@@ -108,7 +108,7 @@ export default function CourseThankYouPage() {
             </span>
           </h1>
           <p className="text-gray-400 text-sm sm:text-base">
-            Your seat for Learn Trading in ₹999 is now confirmed.
+            Your seat for Price Behaviour Mastery is now confirmed.
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function CourseThankYouPage() {
                 Course
               </p>
               <p className="text-sm font-semibold">
-                {data.courseName || "Learn Trading in ₹999"}
+                {data.courseName || "Price Behaviour Mastery"}
               </p>
             </div>
             <div>

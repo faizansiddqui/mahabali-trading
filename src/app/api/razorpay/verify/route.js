@@ -4,6 +4,7 @@ import { cleanPhone10 } from "../../../lib/phone";
 import { sendCoursePurchaseWhatsApp } from "../../../lib/mart2meta";
 import { sendCourseAccessEmail } from "../../../lib/brevo";
 import { saveCoursePurchaseToSheet2 } from "../../../lib/googleSheet";
+import { buildCourseInvoicePdf } from "../../../lib/invoicePdf";
 
 function isValidSignature(orderId, paymentId, signature) {
     const secret = process.env.RAZORPAY_KEY_SECRET;
@@ -34,6 +35,16 @@ export async function POST(req) {
         }
 
         const phone10 = cleanPhone10(phone);
+        const invoiceAttachment = await buildCourseInvoicePdf({
+            name: sanitizedName,
+            email: sanitizedEmail,
+            phone: phone10,
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            amount: "₹999",
+            courseName,
+        });
+
         await saveCoursePurchaseToSheet2({
             name: sanitizedName,
             email: sanitizedEmail,
@@ -65,6 +76,7 @@ export async function POST(req) {
                     course_access_link: courseAccessLink,
                     course_community_url: whatsappCommunityUrl,
                 },
+                invoiceAttachment,
             }),
         ]);
 
@@ -72,6 +84,20 @@ export async function POST(req) {
         const emailStatus = notifications[1]?.status === "fulfilled" ? "sent" : "failed";
         const whatsappError = notifications[0]?.status === "rejected" ? notifications[0].reason?.message : null;
         const emailError = notifications[1]?.status === "rejected" ? notifications[1].reason?.message : null;
+
+        if (whatsappError) {
+            console.error("Course purchase WhatsApp send failed:", whatsappError);
+        }
+        if (emailError) {
+            console.error("Course purchase email send failed:", emailError);
+        }
+        if (!whatsappError && !emailError) {
+            console.log("Course purchase notifications sent", {
+                whatsappStatus,
+                emailStatus,
+                toEmail: sanitizedEmail,
+            });
+        }
 
         return NextResponse.json({
             success: true,

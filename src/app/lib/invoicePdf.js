@@ -1,0 +1,177 @@
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+
+function safe(value, fallback = "-") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function safePdfCurrency(value, fallback = "INR 999") {
+  const text = safe(value, fallback);
+  // Standard PDF fonts (WinAnsi) do not support the Rupee symbol.
+  return text.replaceAll("₹", "INR ");
+}
+
+export async function buildCourseInvoicePdf({
+  name,
+  email,
+  phone,
+  paymentId,
+  orderId,
+  amount,
+  courseName,
+}) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const { width, height } = page.getSize();
+  const margin = 40;
+  let y = height - margin;
+
+  // Header bar
+  page.drawRectangle({
+    x: 0,
+    y: height - 120,
+    width,
+    height: 120,
+    color: rgb(0.11, 0.64, 0.27),
+  });
+  page.drawText("MAHABALI EDUCATION", {
+    x: margin,
+    y: height - 56,
+    size: 18,
+    font: fontBold,
+    color: rgb(1, 1, 1),
+  });
+  page.drawText("Payment Invoice", {
+    x: margin,
+    y: height - 84,
+    size: 26,
+    font: fontBold,
+    color: rgb(1, 1, 1),
+  });
+
+  y = height - 155;
+  const invoiceDate = new Date().toLocaleString("en-IN");
+  const invoiceNumber = `INV-${Date.now()}`;
+
+  page.drawText(`Invoice No: ${invoiceNumber}`, {
+    x: margin,
+    y,
+    size: 11,
+    font: fontBold,
+    color: rgb(0.1, 0.12, 0.16),
+  });
+  page.drawText(`Invoice Date: ${invoiceDate}`, {
+    x: width - 210,
+    y,
+    size: 11,
+    font: fontBold,
+    color: rgb(0.1, 0.12, 0.16),
+  });
+
+  y -= 34;
+  page.drawText("Billed To", {
+    x: margin,
+    y,
+    size: 12,
+    font: fontBold,
+    color: rgb(0.11, 0.64, 0.27),
+  });
+  y -= 18;
+  page.drawText(`Name: ${safe(name)}`, { x: margin, y, size: 11, font: fontRegular, color: rgb(0.13, 0.14, 0.16) });
+  y -= 16;
+  page.drawText(`Email: ${safe(email)}`, { x: margin, y, size: 11, font: fontRegular, color: rgb(0.13, 0.14, 0.16) });
+  y -= 16;
+  page.drawText(`Phone: ${safe(phone)}`, { x: margin, y, size: 11, font: fontRegular, color: rgb(0.13, 0.14, 0.16) });
+
+  y -= 30;
+  // Item table header
+  page.drawRectangle({
+    x: margin,
+    y: y - 4,
+    width: width - margin * 2,
+    height: 24,
+    color: rgb(0.94, 0.97, 0.95),
+  });
+  page.drawText("Description", { x: margin + 8, y: y + 4, size: 11, font: fontBold, color: rgb(0.1, 0.12, 0.16) });
+  page.drawText("Amount", { x: width - 120, y: y + 4, size: 11, font: fontBold, color: rgb(0.1, 0.12, 0.16) });
+
+  y -= 30;
+  page.drawText(`${safe(courseName, "Price Behaviour Mastery")} Course Purchase`, {
+    x: margin + 8,
+    y: y + 4,
+    size: 11,
+    font: fontRegular,
+    color: rgb(0.13, 0.14, 0.16),
+  });
+  page.drawText(`${safePdfCurrency(amount, "INR 999")}`, {
+    x: width - 120,
+    y: y + 4,
+    size: 11,
+    font: fontBold,
+    color: rgb(0.13, 0.14, 0.16),
+  });
+
+  y -= 30;
+  page.drawLine({
+    start: { x: margin, y: y + 18 },
+    end: { x: width - margin, y: y + 18 },
+    thickness: 1,
+    color: rgb(0.9, 0.92, 0.94),
+  });
+  page.drawText("Total Paid", {
+    x: width - 210,
+    y: y,
+    size: 13,
+    font: fontBold,
+    color: rgb(0.1, 0.12, 0.16),
+  });
+  page.drawText(`${safePdfCurrency(amount, "INR 999")}`, {
+    x: width - 120,
+    y: y,
+    size: 13,
+    font: fontBold,
+    color: rgb(0.11, 0.64, 0.27),
+  });
+
+  y -= 44;
+  page.drawText(`Payment ID: ${safe(paymentId)}`, {
+    x: margin,
+    y,
+    size: 10,
+    font: fontRegular,
+    color: rgb(0.23, 0.27, 0.33),
+  });
+  y -= 14;
+  page.drawText(`Order ID: ${safe(orderId)}`, {
+    x: margin,
+    y,
+    size: 10,
+    font: fontRegular,
+    color: rgb(0.23, 0.27, 0.33),
+  });
+
+  // Footer
+  page.drawText("Thank you for your purchase. Wishing you successful trading ahead!", {
+    x: margin,
+    y: 80,
+    size: 10,
+    font: fontBold,
+    color: rgb(0.11, 0.64, 0.27),
+  });
+  page.drawText("Team Mahabali Education", {
+    x: margin,
+    y: 62,
+    size: 10,
+    font: fontRegular,
+    color: rgb(0.23, 0.27, 0.33),
+  });
+
+  const pdfBytes = await pdfDoc.save();
+  const contentBase64 = Buffer.from(pdfBytes).toString("base64");
+  const fileName = `invoice-${safe(paymentId, Date.now())}.pdf`;
+
+  return { contentBase64, fileName };
+}

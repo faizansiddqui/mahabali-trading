@@ -33,7 +33,7 @@ export async function POST(req) {
                     name: lead.name,
                     email: lead.email,
                     phone: lead.phone,
-                    course: "Learn Trading in ₹999",
+                    course: "Price Behaviour Mastery",
                 },
             }),
         });
@@ -50,7 +50,7 @@ export async function POST(req) {
             order: data,
             amount: COURSE_AMOUNT_PAISE,
             currency: "INR",
-            courseName: "Learn Trading in ₹999",
+            courseName: "Price Behaviour Mastery",
         });
     } catch (error) {
         return NextResponse.json(

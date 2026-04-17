@@ -83,7 +83,10 @@ function toParameterString(values) {
 
     return values
         .map((value) => {
-            const clean = String(value ?? "").replace(/[{}]/g, "").trim();
+            let clean = String(value ?? "").replace(/[{}]/g, "").trim();
+            // WhatsApp template text parameters must not be empty — use a safe placeholder
+            // when a value is missing to avoid "Parameter of type text is missing text value" errors.
+            if (!clean) clean = "-";
             return `{${clean}}`;
         })
         .join(",");
@@ -357,4 +360,38 @@ export async function sendCustomTemplateMessage({
         payload,
         label: "custom-template",
     });
+}
+
+export function buildTemplatePayload({
+    templateName,
+    phone10,
+    parameters,
+    templateMediaType = "simple",
+    mediaUrl,
+    path = "/contact/send-template",
+    templateLanguage = MART2META_TEMPLATE_LANGUAGE,
+}) {
+    const payload = {
+        from_phone_number_id: required("MART2META_PHONE_NUMBER_ID", MART2META_PHONE_NUMBER_ID),
+        phone_number: asInternationalPhone(phone10),
+        template_name: templateName,
+        template_language: templateLanguage,
+        template_media_type: templateMediaType,
+    };
+
+    const needsMedia = ["video", "image", "document"].includes(String(templateMediaType || "").toLowerCase());
+
+    if (typeof mediaUrl === "string" && mediaUrl.trim()) {
+        payload.url = resolvePublicUrlMaybe(mediaUrl);
+    } else if (needsMedia) {
+        throw new Error(
+            `Missing mediaUrl for media template. Set MART2META_TEMPLATE_*_MEDIA_URL to a public https URL (or use "/file" with NEXT_PUBLIC_SITE_URL).`
+        );
+    }
+
+    if (Array.isArray(parameters)) {
+        payload.parameters = toParameterString(parameters);
+    }
+
+    return payload;
 }

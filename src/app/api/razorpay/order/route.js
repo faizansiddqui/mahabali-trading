@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { validateForm } from "../../../lib/validate";
 
-const COURSE_AMOUNT_INR = process.env.COURSE_AMOUNT_INR || 999;
-const COURSE_AMOUNT_PAISE = COURSE_AMOUNT_INR * 100;
+const COURSE_AMOUNT_INR = Number(process.env.COURSE_AMOUNT_INR || 999);
+const GST_RATE = Number(process.env.GST_RATE || 18);
+const GST_AMOUNT_INR = Number((COURSE_AMOUNT_INR * GST_RATE / 100).toFixed(2));
+const TOTAL_AMOUNT_INR = Number((COURSE_AMOUNT_INR + GST_AMOUNT_INR).toFixed(2));
+const TOTAL_AMOUNT_PAISE = Math.round(TOTAL_AMOUNT_INR * 100);
 
 export async function POST(req) {
     try {
@@ -25,7 +28,7 @@ export async function POST(req) {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                amount: COURSE_AMOUNT_PAISE,
+                amount: TOTAL_AMOUNT_PAISE,
                 currency: "INR",
                 receipt,
                 payment_capture: 1,
@@ -34,6 +37,11 @@ export async function POST(req) {
                     email: lead.email,
                     phone: lead.phone,
                     course: "Price Behaviour Mastery",
+                    base_price: String(COURSE_AMOUNT_INR),
+                    gst_rate: String(GST_RATE),
+                    gst_amount: String(GST_AMOUNT_INR),
+                    total_amount: String(TOTAL_AMOUNT_INR),
+                    gst_number: process.env.GST_NUMBER || "",
                 },
             }),
         });
@@ -48,9 +56,13 @@ export async function POST(req) {
             success: true,
             keyId,
             order: data,
-            amount: COURSE_AMOUNT_PAISE,
+            amount: TOTAL_AMOUNT_PAISE,
             currency: "INR",
             courseName: "Price Behaviour Mastery",
+            basePrice: COURSE_AMOUNT_INR,
+            gstRate: GST_RATE,
+            gstAmount: GST_AMOUNT_INR,
+            totalAmount: TOTAL_AMOUNT_INR,
         });
     } catch (error) {
         return NextResponse.json(

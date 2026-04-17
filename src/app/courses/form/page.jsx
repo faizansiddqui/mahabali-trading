@@ -357,6 +357,9 @@ export default function CourseFormPage() {
                     <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   )}
                 </button>
+                <p className="mt-2 text-center text-sm text-slate-500">
+                  Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.
+                </p>
               </form>
 
               <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">

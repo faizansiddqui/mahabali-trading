@@ -35,14 +35,21 @@ export async function POST(req) {
         }
 
         const phone10 = cleanPhone10(phone);
+        const COURSE_AMOUNT_INR = Number(process.env.COURSE_AMOUNT_INR || 999);
+        const GST_RATE = Number(process.env.GST_RATE || 18);
+        const GST_AMOUNT = Number((COURSE_AMOUNT_INR * GST_RATE / 100).toFixed(2));
+        const TOTAL_AMOUNT_INR = Number((COURSE_AMOUNT_INR + GST_AMOUNT).toFixed(2));
+
         const invoiceAttachment = await buildCourseInvoicePdf({
             name: sanitizedName,
             email: sanitizedEmail,
             phone: phone10,
             paymentId: razorpay_payment_id,
             orderId: razorpay_order_id,
-            amount: "₹999",
+            amount: COURSE_AMOUNT_INR,
             courseName,
+            gstRate: GST_RATE,
+            gstNumber: process.env.GST_NUMBER || "",
         });
 
         await saveCoursePurchaseToSheet2({
@@ -50,7 +57,7 @@ export async function POST(req) {
             email: sanitizedEmail,
             phone: phone10,
             courseName: "Price Behaviour Mastery",
-            price: "999",
+            price: String(COURSE_AMOUNT_INR),
             paymentStatus: "Done",
         });
 
@@ -71,7 +78,7 @@ export async function POST(req) {
                     phone: phone10,
                     payment_id: razorpay_payment_id,
                     order_id: razorpay_order_id,
-                    amount: "₹999",
+                    amount: `₹${TOTAL_AMOUNT_INR}`,
                     course_name: courseName,
                     course_access_link: courseAccessLink,
                     course_community_url: whatsappCommunityUrl,

@@ -11,6 +11,18 @@ function safePdfCurrency(value, fallback = "INR 999") {
   return text.replaceAll("₹", "INR ");
 }
 
+function parseAmountToNumber(val, fallback = 999) {
+  if (val == null) return Number(fallback);
+  if (typeof val === "number") return val;
+  const cleaned = String(val).replace(/[^0-9.-]/g, "");
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : Number(fallback);
+}
+
+function formatForPdf(num) {
+  return `INR ${Number(num || 0).toFixed(2)}`;
+}
+
 export async function buildCourseInvoicePdf({
   name,
   email,
@@ -19,6 +31,8 @@ export async function buildCourseInvoicePdf({
   orderId,
   amount,
   courseName,
+  gstRate: gstRateParam,
+  gstNumber: gstNumberParam,
 }) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -71,7 +85,20 @@ export async function buildCourseInvoicePdf({
     color: rgb(0.1, 0.12, 0.16),
   });
 
-  y -= 34;
+  // Seller GST number placed below invoice number (if provided)
+  const gstNumber = gstNumberParam ?? process.env.GST_NUMBER ?? "";
+  if (gstNumber) {
+    page.drawText(`GSTIN: ${safe(gstNumber)}`, {
+      x: margin,
+      y: y - 16,
+      size: 10,
+      font: fontRegular,
+      color: rgb(0.23, 0.27, 0.33),
+    });
+    y -= 18;
+  }
+
+  y -= 30;
   page.drawText("Billed To", {
     x: margin,
     y,
@@ -99,6 +126,13 @@ export async function buildCourseInvoicePdf({
   page.drawText("Amount", { x: width - 120, y: y + 4, size: 11, font: fontBold, color: rgb(0.1, 0.12, 0.16) });
 
   y -= 30;
+
+  // Compute amounts: course base, GST and total
+  const courseBase = parseAmountToNumber(amount ?? process.env.COURSE_AMOUNT_INR ?? 999, 999);
+  const gstRate = Number(gstRateParam ?? process.env.GST_RATE ?? 18);
+  const gstAmount = Number((courseBase * gstRate / 100).toFixed(2));
+  const totalPaid = Number((courseBase + gstAmount).toFixed(2));
+
   page.drawText(`${safe(courseName, "Price Behaviour Mastery")} Course Purchase`, {
     x: margin + 8,
     y: y + 4,
@@ -106,7 +140,7 @@ export async function buildCourseInvoicePdf({
     font: fontRegular,
     color: rgb(0.13, 0.14, 0.16),
   });
-  page.drawText(`${safePdfCurrency(amount, "INR 999")}`, {
+  page.drawText(formatForPdf(courseBase), {
     x: width - 120,
     y: y + 4,
     size: 11,
@@ -114,6 +148,12 @@ export async function buildCourseInvoicePdf({
     color: rgb(0.13, 0.14, 0.16),
   });
 
+  // GST row
+  y -= 26;
+  page.drawText(`GST (${gstRate}%)`, { x: margin + 8, y: y + 4, size: 11, font: fontRegular, color: rgb(0.13, 0.14, 0.16) });
+  page.drawText(formatForPdf(gstAmount), { x: width - 120, y: y + 4, size: 11, font: fontRegular, color: rgb(0.13, 0.14, 0.16) });
+
+  // Totals
   y -= 30;
   page.drawLine({
     start: { x: margin, y: y + 18 },
@@ -128,7 +168,7 @@ export async function buildCourseInvoicePdf({
     font: fontBold,
     color: rgb(0.1, 0.12, 0.16),
   });
-  page.drawText(`${safePdfCurrency(amount, "INR 999")}`, {
+  page.drawText(formatForPdf(totalPaid), {
     x: width - 120,
     y: y,
     size: 13,

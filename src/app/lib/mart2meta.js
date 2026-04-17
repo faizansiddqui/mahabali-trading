@@ -1,5 +1,5 @@
 // src/app/lib/mart2meta.js
-import { cleanPhone10 } from "./phone";
+import { cleanPhone10 } from "./phone.js";
 
 const MART2META_API_BASE_URL = process.env.MART2META_API_BASE_URL || "https://login.mart2meta.com/api";
 const MART2META_UID = process.env.MART2META_UID || "";
@@ -284,6 +284,7 @@ export async function sendMorningReminder({
     webinarDate,
     webinarDay,
     webinarTime,
+    webinarLink = WEBINAR_LINK,
     templateMediaType = process.env.MART2META_TEMPLATE_MORNING_MEDIA_TYPE || "simple",
     mediaUrl,
 }) {
@@ -293,7 +294,7 @@ export async function sendMorningReminder({
         phone10,
         templateMediaType,
         mediaUrl: mediaUrl || process.env.MART2META_TEMPLATE_MORNING_MEDIA_URL,
-        parameters: [name, webinarDate, webinarDay, webinarTime],
+        parameters: [name, webinarDate, webinarDay, webinarTime, webinarLink],
     });
 }
 

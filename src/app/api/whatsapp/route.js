@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { cleanPhone10 } from "../../lib/phone";
 import { validateForm } from "../../lib/validate";
 import { saveToSheet, markCell } from "../../lib/googleSheet";
-import { sendConfirmation } from "../../lib/mart2meta";
+import { sendConfirmation, send2DayReminder, sendMorningReminder, send10MinReminder, sendLiveNow } from "../../lib/mart2meta";
 import { getQstashTargetUrl, publishScheduled, toEpochSeconds } from "../../lib/qstash";
+import fs from "fs";
 
 // Column J = sentConfirmation
 const COL_LETTER_SENT_CONFIRM = "J";
@@ -123,6 +124,33 @@ function buildSecondDayReminderISOFromNow() {
 
 export async function POST(req) {
   try {
+    // Read REMINDER_TEST_MODE dynamically from .env in development so toggling
+    // the file does not require restarting the dev server. Falls back to
+    // process.env if .env is missing or the key is not present.
+    function readEnvValueFromDotEnv(key) {
+      try {
+        const envPath = `${process.cwd()}/.env`;
+        if (!fs.existsSync(envPath)) return undefined;
+        const raw = fs.readFileSync(envPath, "utf8");
+        const lines = raw.split(/\r?\n/);
+        for (const line of lines) {
+          const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*)?\s*$/);
+          if (!m) continue;
+          if (m[1] !== key) continue;
+          let val = m[2] || "";
+          val = val.trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          return val;
+        }
+        return undefined;
+      } catch (err) {
+        console.error("Error reading .env:", err.message || err);
+        return undefined;
+      }
+    }
+
     const body = await req.json();
 
     // basic validations + normalization
@@ -185,79 +213,161 @@ export async function POST(req) {
       await markCell(rowNumber, COL_LETTER_SENT_CONFIRM, "yes");
     }
 
-    // schedule reminders via QStash
-    const reminderTestMode = String(process.env.REMINDER_TEST_MODE || "").toLowerCase() === "true";
+    // schedule reminders via QStash or, when testing, send immediately
+    const rawReminderMode = String(readEnvValueFromDotEnv("REMINDER_TEST_MODE") ?? process.env.REMINDER_TEST_MODE ?? "");
+    let reminderTestMode = rawReminderMode.toLowerCase() === "true";
 
-    if (rowNumber && !reminderTestMode) {
-      try {
-        const baseUrl = getQstashTargetUrl(req.url, req.headers);
-        const receiverUrl = `${baseUrl}/api/qstash`;
-        const parsed = new URL(receiverUrl);
-        if (!/^https?:$/.test(parsed.protocol)) {
-          throw new Error("Invalid protocol");
+    // Safety: when running in production, force scheduling (QStash) unless
+    // an explicit override `ALLOW_IMMEDIATE_REMINDERS=true` is set.
+    if (
+      process.env.NODE_ENV === "production" &&
+      String(process.env.ALLOW_IMMEDIATE_REMINDERS || "").toLowerCase() !== "true"
+    ) {
+      if (reminderTestMode) {
+        console.log("Overriding REMINDER_TEST_MODE in production: forcing QStash scheduling unless ALLOW_IMMEDIATE_REMINDERS=true");
+      }
+      reminderTestMode = false;
+    }
+
+    console.log("REMINDER mode", { rawReminderMode, reminderTestMode, nodeEnv: process.env.NODE_ENV });
+
+    if (rowNumber) {
+      if (reminderTestMode) {
+        // Send all reminders immediately (useful for local testing). Each send is isolated
+        // so one failure doesn't stop the rest.
+        try {
+          try {
+            await send2DayReminder({
+              name: normalized.name,
+              phone10,
+              templateMediaType: reminderMediaType || undefined,
+              mediaUrl: reminderMediaUrl || undefined,
+            });
+            await markCell(rowNumber, "K", "yes");
+            console.log("IMMEDIATE SENT 2DAY", { rowNumber });
+          } catch (err) {
+            console.error("Immediate 2day error:", err);
+          }
+
+          try {
+            await sendMorningReminder({
+              name: normalized.name,
+              phone10,
+              webinarDate,
+              webinarDay,
+              webinarTime,
+              templateMediaType: reminderMediaType || undefined,
+              mediaUrl: reminderMediaUrl || undefined,
+            });
+            await markCell(rowNumber, "L", "yes");
+            console.log("IMMEDIATE SENT MORNING", { rowNumber });
+          } catch (err) {
+            console.error("Immediate morning error:", err);
+          }
+
+          try {
+            await send10MinReminder({
+              name: normalized.name,
+              phone10,
+              webinarTime,
+              templateMediaType: reminderMediaType || undefined,
+              mediaUrl: reminderMediaUrl || undefined,
+            });
+            await markCell(rowNumber, "M", "yes");
+            console.log("IMMEDIATE SENT 10MIN", { rowNumber });
+          } catch (err) {
+            console.error("Immediate 10min error:", err);
+          }
+
+          try {
+            await sendLiveNow({
+              name: normalized.name,
+              phone10,
+              webinarDate,
+              webinarDay,
+              webinarTime,
+              templateMediaType: reminderMediaType || undefined,
+              mediaUrl: reminderMediaUrl || undefined,
+            });
+            await markCell(rowNumber, "N", "yes");
+            console.log("IMMEDIATE SENT LIVE", { rowNumber });
+          } catch (err) {
+            console.error("Immediate live error:", err);
+          }
+        } catch (err) {
+          console.error("Immediate reminders error:", err);
         }
-        // Upstash QStash rejects loopback/private localhost destinations.
-        // If you're testing locally, set REMINDER_TEST_MODE=true (skip scheduling)
-        // or set QSTASH_TARGET_URL to a public tunnel/domain.
-        const host = (parsed.hostname || "").toLowerCase();
-        if (
-          host === "localhost" ||
-          host === "127.0.0.1" ||
-          host === "::1" ||
-          host === "[::1]"
-        ) {
-          throw new Error(
-            `QStash destination resolves to loopback (${parsed.hostname}). Set QSTASH_TARGET_URL to a public URL or enable REMINDER_TEST_MODE=true.`
-          );
+      } else {
+        try {
+          const baseUrl = getQstashTargetUrl(req.url, req.headers);
+          const receiverUrl = `${baseUrl}/api/qstash`;
+          const parsed = new URL(receiverUrl);
+          if (!/^https?:$/.test(parsed.protocol)) {
+            throw new Error("Invalid protocol");
+          }
+          // Upstash QStash rejects loopback/private localhost destinations.
+          // If you're testing locally, set REMINDER_TEST_MODE=true (skip scheduling)
+          // or set QSTASH_TARGET_URL to a public tunnel/domain.
+          const host = (parsed.hostname || "").toLowerCase();
+          if (
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "::1" ||
+            host === "[::1]"
+          ) {
+            throw new Error(
+              `QStash destination resolves to loopback (${parsed.hostname}). Set QSTASH_TARGET_URL to a public URL or enable REMINDER_TEST_MODE=true.`
+            );
+          }
+
+          const secondDayReminderISO = buildSecondDayReminderISOFromNow();
+          const secondDayEpoch = toEpochSeconds(secondDayReminderISO);
+          const morningWebinarISO = buildWebinarMorningISO(webinarDate);
+          if (!morningWebinarISO) throw new Error("Invalid morning webinar ISO");
+          const morningEpoch = toEpochSeconds(morningWebinarISO);
+          const webinarTs = new Date(webinarISO).getTime();
+          if (Number.isNaN(webinarTs)) throw new Error("Invalid webinarISO");
+          const tenMinEpoch = toEpochSeconds(new Date(webinarTs - 10 * 60 * 1000).toISOString());
+          const liveEpoch = toEpochSeconds(new Date(webinarTs).toISOString());
+
+          const payload = {
+            rowNumber,
+            leadId,
+            name: normalized.name,
+            email: normalized.email,
+            phone10,
+            webinarDay,
+            webinarDate,
+            webinarTime,
+            webinarISO,
+            reminderMediaUrl: reminderMediaUrl || undefined,
+            reminderMediaType: reminderMediaType || undefined,
+          };
+
+          await publishScheduled({
+            url: receiverUrl,
+            body: { type: "2day", ...payload },
+            notBeforeEpochSeconds: secondDayEpoch,
+          });
+          await publishScheduled({
+            url: receiverUrl,
+            body: { type: "morning", ...payload },
+            notBeforeEpochSeconds: morningEpoch,
+          });
+          await publishScheduled({
+            url: receiverUrl,
+            body: { type: "10min", ...payload },
+            notBeforeEpochSeconds: tenMinEpoch,
+          });
+          await publishScheduled({
+            url: receiverUrl,
+            body: { type: "live", ...payload },
+            notBeforeEpochSeconds: liveEpoch,
+          });
+        } catch (err) {
+          // Don't fail the whole form submission if reminders scheduling fails.
+          console.error("QStash scheduling error:", err);
         }
-
-        const secondDayReminderISO = buildSecondDayReminderISOFromNow();
-        const secondDayEpoch = toEpochSeconds(secondDayReminderISO);
-        const morningWebinarISO = buildWebinarMorningISO(webinarDate);
-        if (!morningWebinarISO) throw new Error("Invalid morning webinar ISO");
-        const morningEpoch = toEpochSeconds(morningWebinarISO);
-        const webinarTs = new Date(webinarISO).getTime();
-        if (Number.isNaN(webinarTs)) throw new Error("Invalid webinarISO");
-        const tenMinEpoch = toEpochSeconds(new Date(webinarTs - 10 * 60 * 1000).toISOString());
-        const liveEpoch = toEpochSeconds(new Date(webinarTs).toISOString());
-
-        const payload = {
-          rowNumber,
-          leadId,
-          name: normalized.name,
-          email: normalized.email,
-          phone10,
-          webinarDay,
-          webinarDate,
-          webinarTime,
-          webinarISO,
-          reminderMediaUrl: reminderMediaUrl || undefined,
-          reminderMediaType: reminderMediaType || undefined,
-        };
-
-        await publishScheduled({
-          url: receiverUrl,
-          body: { type: "2day", ...payload },
-          notBeforeEpochSeconds: secondDayEpoch,
-        });
-        await publishScheduled({
-          url: receiverUrl,
-          body: { type: "morning", ...payload },
-          notBeforeEpochSeconds: morningEpoch,
-        });
-        await publishScheduled({
-          url: receiverUrl,
-          body: { type: "10min", ...payload },
-          notBeforeEpochSeconds: tenMinEpoch,
-        });
-        await publishScheduled({
-          url: receiverUrl,
-          body: { type: "live", ...payload },
-          notBeforeEpochSeconds: liveEpoch,
-        });
-      } catch (err) {
-        // Don't fail the whole form submission if reminders scheduling fails.
-        console.error("QStash scheduling error:", err);
       }
     }
 

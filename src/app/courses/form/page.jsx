@@ -53,15 +53,21 @@ function PriceBreakdown({ price, gstRate }) {
     <div className="rounded-lg border border-slate-100 bg-white/50 p-4 text-left">
       <div className="flex items-center justify-between text-sm text-slate-600">
         <span>Course price</span>
-        <span className="font-medium text-slate-900">{formatter.format(price)}</span>
+        <span className="font-medium text-slate-900">
+          {formatter.format(price)}
+        </span>
       </div>
       <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
         <span>GST ({gstRate}%)</span>
-        <span className="font-medium text-slate-900">{formatter.format(Number(gstAmount))}</span>
+        <span className="font-medium text-slate-900">
+          {formatter.format(Number(gstAmount))}
+        </span>
       </div>
       <div className="mt-3 flex items-center justify-between border-t pt-3 text-base">
         <span className="font-black">Total</span>
-        <span className="font-black text-slate-900">{formatter.format(Number(total))}</span>
+        <span className="font-black text-slate-900">
+          {formatter.format(Number(total))}
+        </span>
       </div>
     </div>
   );
@@ -386,7 +392,9 @@ export default function CourseFormPage() {
                     <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   )}
                 </button>
-                <p className="mt-2 text-center text-sm text-slate-500">Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.</p>
+                <p className="mt-2 text-center text-sm text-slate-500">
+                  Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.
+                </p>
                 <div className="mb-4">
                   <PriceBreakdown price={COURSE_PRICE} gstRate={GST_RATE} />
                 </div>

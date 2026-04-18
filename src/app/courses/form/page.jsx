@@ -64,7 +64,7 @@ function PriceBreakdown({ price, gstRate }) {
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between border-t pt-3 text-base">
-        <span className="font-black">Total</span>
+        <span className="font-black text-slate-600">Total</span>
         <span className="font-black text-slate-900">
           {formatter.format(Number(total))}
         </span>

@@ -20,6 +20,8 @@ const MENTOR_VIDEO_URL = (
   process.env.NEXT_PUBLIC_MENTOR_VIDEO_URL || "/intro.mp4"
 ).trim();
 
+const GST_RATE = Number(process.env.NEXT_PUBLIC_GST_RATE || 18);
+
 function loadRazorpayScript() {
   return new Promise((resolve) => {
     if (window.Razorpay) return resolve(true);
@@ -36,6 +38,33 @@ function loadRazorpayScript() {
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
+}
+
+function PriceBreakdown({ price, gstRate }) {
+  const gstAmount = Number((price * gstRate) / 100).toFixed(2);
+  const total = Number(Number(price) + Number(gstAmount)).toFixed(2);
+  const formatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  });
+
+  return (
+    <div className="rounded-lg border border-slate-100 bg-white/50 p-4 text-left">
+      <div className="flex items-center justify-between text-sm text-slate-600">
+        <span>Course price</span>
+        <span className="font-medium text-slate-900">{formatter.format(price)}</span>
+      </div>
+      <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
+        <span>GST ({gstRate}%)</span>
+        <span className="font-medium text-slate-900">{formatter.format(Number(gstAmount))}</span>
+      </div>
+      <div className="mt-3 flex items-center justify-between border-t pt-3 text-base">
+        <span className="font-black">Total</span>
+        <span className="font-black text-slate-900">{formatter.format(Number(total))}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function CourseFormPage() {
@@ -357,9 +386,10 @@ export default function CourseFormPage() {
                     <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   )}
                 </button>
-                <p className="mt-2 text-center text-sm text-slate-500">
-                  Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.
-                </p>
+                <p className="mt-2 text-center text-sm text-slate-500">Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.</p>
+                <div className="mb-4">
+                  <PriceBreakdown price={COURSE_PRICE} gstRate={GST_RATE} />
+                </div>
               </form>
 
               <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">

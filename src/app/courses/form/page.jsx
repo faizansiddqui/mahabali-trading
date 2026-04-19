@@ -85,6 +85,7 @@ export default function CourseFormPage() {
     email: "",
     phone: "",
   });
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -113,6 +114,11 @@ export default function CourseFormPage() {
       !formData.phone.trim()
     ) {
       setErrorMessage("Please fill name, email, and phone.");
+      return;
+    }
+
+    if (!agreed) {
+      setErrorMessage("Please agree to the Terms & Privacy Policy.");
       return;
     }
 
@@ -354,6 +360,7 @@ export default function CourseFormPage() {
                   label="Full Name"
                   icon={User}
                   name="name"
+                  required
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter your full name"
@@ -362,6 +369,7 @@ export default function CourseFormPage() {
                   label="Email Address"
                   icon={Mail}
                   name="email"
+                  required
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email address"
@@ -371,11 +379,50 @@ export default function CourseFormPage() {
                   label="Phone Number"
                   icon={Phone}
                   name="phone"
+                  required
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter your phone number"
                   type="tel"
                 />
+                <div className="mb-4">
+                  <PriceBreakdown price={COURSE_PRICE} gstRate={GST_RATE} />
+                </div>
+
+                <div className="flex items-center justify-center gap-3 text-sm text-slate-700">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={agreed}
+                      onChange={(e) => {
+                        setAgreed(e.target.checked)
+                      }}
+                      className="h-4 w-4 mt-1 accent-[#75c13f]"
+                    />
+                    <span>
+                      By submitting, you agree to our{" "}
+                      <a
+                        href="/terms-of-service"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#75c13f] underline"
+                      >
+                        Terms
+                      </a>{" "}
+                      &amp;{" "}
+                      <a
+                        href="/privacy-policy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#75c13f] underline"
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </span>
+                  </label>
+                </div>
 
                 <button
                   type="submit"
@@ -383,21 +430,17 @@ export default function CourseFormPage() {
                   className="group relative flex w-full items-center justify-center gap-3 cursor-pointer overflow-hidden rounded-[10px] bg-slate-900 hover:bg-[#75c13f] py-4 text-lg font-black uppercase tracking-wider text-white hover:text-gray-900 transition-all duration-150 ease-in-out hover:-translate-y-[4px] hover:shadow-[0_20px_40px_-10px_rgba(117,193,63,0.5)] active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <span className="absolute inset-0 h-full w-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_1.5s_infinite]" />
-                  <span className="relative z-10">
-                    Enroll Now - ₹{COURSE_PRICE}
-                  </span>
+                  <span className="relative z-10">Enroll Now</span>
                   {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   )}
                 </button>
+
                 <p className="mt-2 text-center text-sm text-slate-500">
                   Note: कोर्स फीस ₹999 पर 18% GST लागू होगा.
                 </p>
-                <div className="mb-4">
-                  <PriceBreakdown price={COURSE_PRICE} gstRate={GST_RATE} />
-                </div>
               </form>
 
               <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">

@@ -459,8 +459,12 @@ export default function FormPage() {
 
               <p className="mt-8 text-center text-xs text-slate-400 font-medium">
                 By submitting, you agree to our{" "}
-                <span className="underline cursor-pointer">Terms</span> &{" "}
-                <span className="underline cursor-pointer">Privacy Policy</span>
+                <a className="underline cursor-pointer" href="/terms-of-service">
+                  Terms
+                </a> &{" "}
+                <a className="underline cursor-pointer" href="/privacy-policy">
+                  Privacy Policy
+                </a>
               </p>
 
               {/* Back to Home Button */}

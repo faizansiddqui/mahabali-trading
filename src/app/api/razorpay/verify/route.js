@@ -115,6 +115,7 @@ export async function POST(req) {
             },
             whatsappError,
             emailError,
+            whatsappCommunityUrl,
         });
     } catch (error) {
         return NextResponse.json(

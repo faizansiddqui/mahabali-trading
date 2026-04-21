@@ -63,7 +63,7 @@ export async function sendCourseAccessEmail({ toEmail, toName, params, invoiceAt
         return await sendBrevoTemplateEmail({ toEmail, toName, params, attachments: attachment });
     } catch {
         const courseName = params?.course_name || "Price Behaviour Mastery";
-        const communityUrl = params?.course_community_url || "";
+        const communityUrl = params?.course_community_url || "https://chat.whatsapp.com/BqGroJM47xW8a9kOL3GuUT";
 
         return sendBrevoEmail({
             to: [{ email: toEmail, name: toName }],
@@ -113,9 +113,6 @@ export async function sendCourseAccessEmail({ toEmail, toName, params, invoiceAt
                          padding:12px 20px;border-radius:10px;font-size:14px;font-weight:bold;display:inline-block;">
                          Join WhatsApp Community
                       </a>
-                      <p style="font-size:12px;color:#64748b;margin-top:8px;word-break:break-all;">
-                        ${communityUrl}
-                      </p>
                     </div>
                     ` : ""}
 

@@ -207,6 +207,8 @@ export default function CourseFormPage() {
                   courseName: "Price Behaviour Mastery",
                   paymentId: paymentResponse.razorpay_payment_id,
                   orderId: paymentResponse.razorpay_order_id,
+                  whatsappCommunityUrl:
+                    verifyResult?.whatsappCommunityUrl || "",
                 }),
               );
             }
@@ -396,7 +398,7 @@ export default function CourseFormPage() {
                       required
                       checked={agreed}
                       onChange={(e) => {
-                        setAgreed(e.target.checked)
+                        setAgreed(e.target.checked);
                       }}
                       className="h-4 w-4 mt-1 accent-[#75c13f]"
                     />

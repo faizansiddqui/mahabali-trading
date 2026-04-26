@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { formatISTDateTime } from "./dateTime";
 
 function safe(value, fallback = "-") {
   const text = String(value ?? "").trim();
@@ -67,7 +68,7 @@ export async function buildCourseInvoicePdf({
   });
 
   y = height - 155;
-  const invoiceDate = new Date().toLocaleString("en-IN");
+  const invoiceDate = formatISTDateTime();
   const invoiceNumber = `INV-${Date.now()}`;
 
   page.drawText(`Invoice No: ${invoiceNumber}`, {

@@ -1,5 +1,6 @@
 // src/app/lib/googleSheet.js
 import { google } from "googleapis";
+import { formatISTDateTime } from "./dateTime";
 
 function getAuthClient() {
   const auth = new google.auth.GoogleAuth({
@@ -32,7 +33,7 @@ export async function saveToSheet({
   const sheets = await getSheets();
 
   const values = [[
-    new Date().toLocaleString("en-IN"), // A Timestamp
+    formatISTDateTime(), // A Timestamp
     name,                               // B
     email,                              // C
     phone,                              // D (10 digit only)
@@ -121,7 +122,7 @@ export async function saveCoursePurchaseToSheet2({
   const sheets = await getSheets();
 
   const values = [[
-    new Date().toLocaleString("en-IN"),
+    formatISTDateTime(),
     name || "",
     email || "",
     phone || "",
